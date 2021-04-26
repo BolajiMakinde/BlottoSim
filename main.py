@@ -21,6 +21,8 @@ where the Nth element is the number of soldiers being sent to castle N.
 What's your entry? How did you go about coming up with it?
 '''
 import random
+import pandas as pd
+import numpy as np
 #= 10000 trial uniform random distribution win rate
 #*= 10000 trial random probability distribution win rate
 example_alice = [10,10,10,10,20,0,0,0,20,20] #= 0.23 #*= 0.23
@@ -34,21 +36,64 @@ babs = [1,1,21,1,1,21,1,11,31,11] #= 0.65 #*= 0.57
 even_distribution = [10]*10 #= 0.55 #*= 0.50
 first_three = [33,33,34,0,0,0,0,0,0,0] #= 1.00 #*= 1.00
 second_three = [0,0,33,33,34,0,0,0,0,0] #= 1.00 #*= 1.00
+kole2 = [0,20,40,40,0,0,0,0,0,0]
 
-def simulate(trials, print_result = True, print_castles = True):
-    print("----------------------------------------------")
+tourney = [example_alice, test, test2,bola,kole,uju,babs,even_distribution,first_three,second_three,kole2]
+
+def simulate_tournament(trials, use_prob_distribution = True, contestants = None):
+    number_of_contestants = len(contestants)
+    tournament_results = []
+    for x in range(number_of_contestants):
+        a = []
+        for y in range(number_of_contestants):
+            a.append(0)
+        tournament_results.append(a)
+
+    #print(tournament_results)
+    if number_of_contestants < 2:
+        return None
+    contestant_scores = [0] * number_of_contestants
+    contestant1 = 0
+    while contestant1 < number_of_contestants-1:
+        contestant2 = contestant1+1
+        while contestant2 < number_of_contestants:
+            tournament_results[contestant1][contestant2] = float(round(simulate(trials, c1 = contestants[contestant1], c2 = contestants[contestant2], print_result = False, print_castles = False),5))
+            tournament_results[contestant2][contestant1] = -1*tournament_results[contestant1][contestant2]
+            #print("c1: " + str(contestant1) + "c2 " + str(contestant2))
+            contestant2+=1
+        contestant1 += 1
+    print(tournament_results)
+    return tournament_results
+
+def simulate(trials, c1 = None, use_prob_c1 = True, c2 = None, use_prob_c2 = True, print_result = True, print_castles = True):
+    Alice = []
+    Carol = []
+    if print_castles & print_result == True:
+        print("----------------------------------------------")
     trial = 1
     Alice_wins = 0
     Carol_wins = 0
     Draws = 0
     while trial <= trials:
-        Alice = select_random_castles()
-        Alice = generate_probability(bola)
+        if c1 == None:
+            Alice = select_random_castles()
+            Alice = generate_probability(kole)
+            #Alice = generate_probability(bola)
+        else:
+            Alice = c1
+            if use_prob_c1:
+                Alice = generate_probability(c1)
         if print_castles == True:
             print("ALICE CASTLES: ")
             print(Alice)
-        Carol = select_random_castles()
-        Carol = generate_probability(select_random_castles())
+        if c2 == None:
+            Carol = select_random_castles()
+            Carol = bola
+            #Carol = generate_probability(select_random_castles())
+        else:
+            Carol = c2
+            if use_prob_c2:
+                Carol = generate_probability(c2)
         if print_castles == True:
             print("CAROL CASTLES: ")
             print(Carol)
@@ -70,9 +115,11 @@ def simulate(trials, print_result = True, print_castles = True):
         trial += 1
         if print_result == True:
             print("____________________________________________________")
-    print("====================================================")
-    print("Alice Wins: " + str(Alice_wins/trials) + "Carol Wins: " + str(Carol_wins/trials) + "Draws: " + str(Draws/trials))
-    print("====================================================")
+    if print_result == True:
+        print("====================================================")
+        print("Alice Wins: " + str(Alice_wins/trials) + "Carol Wins: " + str(Carol_wins/trials) + "Draws: " + str(Draws/trials))
+        print("====================================================")
+    return (Alice_wins/trials) - (Carol_wins/trials)
 
 def select_random_castles():
     castles = [0]*10
@@ -134,4 +181,8 @@ def determine_winner(Alice, Carol):
     else:
         return "Draw", Alice_points, winning_castles
 
-simulate(10000,False,False)
+a = np.array(simulate_tournament(10000,contestants=tourney))
+#np.savetxt('my_file.csv',a,delimiter=',')
+pd.DataFrame(a).to_csv("my_file.csv")
+df = pd.DataFrame(a).T
+#df.to_excel(excel_writer = 'my_file.xlsx')
