@@ -36,18 +36,34 @@ babs = [1,1,21,1,1,21,1,11,31,11] #= 0.65 #*= 0.57
 even_distribution = [10]*10 #= 0.55 #*= 0.50
 first_three = [33,33,34,0,0,0,0,0,0,0] #= 1.00 #*= 1.00
 second_three = [0,0,33,33,34,0,0,0,0,0] #= 1.00 #*= 1.00
+second_three_v2 = [0,0,34,33,33,0,0,0,0,0]
 kole2 = [0,20,40,40,0,0,0,0,0,0]
+kole2_modified = [0,22,40,38,0,0,0,0,0,0]
+test3 = [5,15,5,15,5,15,5,15,5,15]
+test4 = [20,40,40,0,0,0,0,0,0,0]
+test4_modified = [20,38,42,0,0,0,0,0,0,0]
+test4_modified_v2 = [21,37,42,0,0,0,0,0,0,0]
+bola_v2 = [1,1,50,1,1,1,10,15,10,10]
+test5 = [25,25,50,0,0,0,0,0,0,0]
+test5_modified = [24,25,51,0,0,0,0,0,0,0]
+test6 = [22,22,56,0,0,0,0,0,0,0]
+test7 = [22,22,53,1,1,1,0,0,0,0]
+test7_modified = [22,22,52,1,1,1,1,0,0,0,0]
 
-tourney = [example_alice, test, test2,bola,kole,uju,babs,even_distribution,first_three,second_three,kole2]
+tourney = [example_alice, test, test2,bola,kole,uju,babs,even_distribution,first_three,second_three, second_three_v2,kole2,kole2_modified,test3,example_carol,test4,test4_modified,test4_modified_v2,bola_v2,test5,test5_modified, test6, test7, test7_modified]
 
 def simulate_tournament(trials, use_prob_distribution = True, contestants = None):
     number_of_contestants = len(contestants)
     tournament_results = []
+    probability_breakdown = []
     for x in range(number_of_contestants):
         a = []
+        b = []
         for y in range(number_of_contestants):
             a.append(0)
+            b.append(0)
         tournament_results.append(a)
+        probability_breakdown.append(b)
 
     #print(tournament_results)
     if number_of_contestants < 2:
@@ -57,13 +73,19 @@ def simulate_tournament(trials, use_prob_distribution = True, contestants = None
     while contestant1 < number_of_contestants-1:
         contestant2 = contestant1+1
         while contestant2 < number_of_contestants:
-            tournament_results[contestant1][contestant2] = float(round(simulate(trials, c1 = contestants[contestant1], c2 = contestants[contestant2], print_result = False, print_castles = False),5))
-            tournament_results[contestant2][contestant1] = -1*tournament_results[contestant1][contestant2]
+            probability_breakdown[contestant1][contestant2], alice_points, carol_points = simulate(trials, c1 = contestants[contestant1], c2 = contestants[contestant2], print_result = False, print_castles = False)
+            tournament_results[contestant1][contestant2] = float(round(alice_points,5))
+            tournament_results[contestant2][contestant1] = float(round(carol_points,5))
+            probability_breakdown[contestant2][contestant1] = -1*probability_breakdown[contestant1][contestant2]
+            #print("c1: " + str(contestant1) + "c2 " + str(contestant2))
             #print("c1: " + str(contestant1) + "c2 " + str(contestant2))
             contestant2+=1
         contestant1 += 1
+    print("-------------Probability Breakdown--------------")
+    print(probability_breakdown)
+    print("-------------Tournament Results--------------")
     print(tournament_results)
-    return tournament_results
+    return probability_breakdown, tournament_results
 
 def simulate(trials, c1 = None, use_prob_c1 = True, c2 = None, use_prob_c2 = True, print_result = True, print_castles = True):
     Alice = []
@@ -74,7 +96,10 @@ def simulate(trials, c1 = None, use_prob_c1 = True, c2 = None, use_prob_c2 = Tru
     Alice_wins = 0
     Carol_wins = 0
     Draws = 0
+    Alice_total_points = 0
+    Carol_total_points = 0
     while trial <= trials:
+        points = 0
         if c1 == None:
             Alice = select_random_castles()
             Alice = generate_probability(kole)
@@ -97,19 +122,22 @@ def simulate(trials, c1 = None, use_prob_c1 = True, c2 = None, use_prob_c2 = Tru
         if print_castles == True:
             print("CAROL CASTLES: ")
             print(Carol)
-        result, points, winning_castles = determine_winner(Alice, Carol)
-        
+        result, alice_points, carol_points, winning_castles = determine_winner(Alice, Carol)
+        Alice_total_points += alice_points
+        Carol_total_points += carol_points
         if result == "Draw":
             if print_result == True:
                 print(result + "!")
             Draws+=1
         else:
-            if print_result == True:
-                print(result + " Wins by " + str(points) + " Points!")
             if result == "Alice":
+                points = alice_points
                 Alice_wins += 1
             else:
+                points = carol_points
                 Carol_wins += 1
+            if print_result == True:
+                print(result + " Wins by " + str(points) + " Points!")
         if print_castles == True:
             print(winning_castles)
         trial += 1
@@ -119,7 +147,7 @@ def simulate(trials, c1 = None, use_prob_c1 = True, c2 = None, use_prob_c2 = Tru
         print("====================================================")
         print("Alice Wins: " + str(Alice_wins/trials) + "Carol Wins: " + str(Carol_wins/trials) + "Draws: " + str(Draws/trials))
         print("====================================================")
-    return (Alice_wins/trials) - (Carol_wins/trials)
+    return (Alice_wins/trials) - (Carol_wins/trials), Alice_total_points/trials, Carol_total_points/trials
 
 def select_random_castles():
     castles = [0]*10
@@ -130,18 +158,19 @@ def select_random_castles():
     return castles
 
 def generate_probability(castles):
-    temp_arr = [0]*100
+    castle_sum = sum(castles)
+    temp_arr = [0]*castle_sum
     iteration = 1
     ret = [0]*10
     while iteration <= 100:
-        temp_arr[random.randint(0,99)] += 1
+        temp_arr[random.randint(0,castle_sum-1)] += 1
         iteration += 1
-    #---------------------------------------
+    #---------------------------------------generate an array of size 100 with 100 items distributed purely random.
     iteration = 1
     col = 0
-    sum_cols = castles[col]
-    while iteration <= 100:
-        while iteration > sum_cols:
+    sum_cols = castles[col] #set for target value = castle[0]
+    while iteration <= castle_sum:
+        while iteration > sum_cols: #once the target value is surpassed increase the target to the next castle[N] that is greater than zero
             col += 1
             if sum_cols == 100:
                 break
@@ -156,15 +185,7 @@ def determine_winner(Alice, Carol):
     Carol_points = 0
     winning_castles = ['U']*10
     while (col < 10):
-        if Alice[col] > Carol[col]:
-            winning_castles[col] = 'A'
-            Alice_points += col+1
-        elif Alice[col] < Carol[col]:
-            winning_castles[col] = 'C'
-            Carol_points += col+1
-        else:
-            winning_castles[col] = 'X'
-        if col >= 2 and winning_castles[col] != 'X' and winning_castles[col] == winning_castles[col-1] and winning_castles[col] == winning_castles[col-2]:
+        if col >= 3 and winning_castles[col-1] != 'X' and winning_castles[col-1] == winning_castles[col-2] and winning_castles[col-1] == winning_castles[col-3]:
             while (col < 10):
                 winning_castles[col] = winning_castles[col-1]
                 if winning_castles[col] == 'C':
@@ -173,16 +194,25 @@ def determine_winner(Alice, Carol):
                     Alice_points += col+1
                 col += 1
             break
+        elif Alice[col] > Carol[col]:
+            winning_castles[col] = 'A'
+            Alice_points += col+1
+        elif Alice[col] < Carol[col]:
+            winning_castles[col] = 'C'
+            Carol_points += col+1
+        else:
+            winning_castles[col] = 'X'
         col += 1
     if Alice_points > Carol_points:
-        return "Alice", Alice_points, winning_castles
+        return "Alice", Alice_points, Carol_points, winning_castles
     elif Alice_points < Carol_points:
-        return "Carol", Carol_points, winning_castles
+        return "Carol", Alice_points, Carol_points, winning_castles
     else:
-        return "Draw", Alice_points, winning_castles
+        return "Draw", Alice_points, Carol_points, winning_castles
 
-a = np.array(simulate_tournament(10000,contestants=tourney))
+a,b = np.array(simulate_tournament(10000,contestants=tourney))
 #np.savetxt('my_file.csv',a,delimiter=',')
-pd.DataFrame(a).to_csv("my_file.csv")
-df = pd.DataFrame(a).T
+pd.DataFrame(a).to_csv("probabilty_breakdown.csv")
+pd.DataFrame(b).to_csv("tournament_results.csv")
+#df = pd.DataFrame(a).T
 #df.to_excel(excel_writer = 'my_file.xlsx')
