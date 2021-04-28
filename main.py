@@ -73,7 +73,7 @@ def simulate_tournament(trials, use_prob_distribution = True, contestants = None
     while contestant1 < number_of_contestants-1:
         contestant2 = contestant1+1
         while contestant2 < number_of_contestants:
-            probability_breakdown[contestant1][contestant2], alice_points, carol_points = simulate(trials, c1 = contestants[contestant1], c2 = contestants[contestant2], print_result = False, print_castles = False)
+            probability_breakdown[contestant1][contestant2], alice_points, carol_points, alice_by_three, carol_by_three = simulate(trials, c1 = contestants[contestant1], c2 = contestants[contestant2], print_result = False, print_castles = False)
             tournament_results[contestant1][contestant2] = float(round(alice_points,5))
             tournament_results[contestant2][contestant1] = float(round(carol_points,5))
             probability_breakdown[contestant2][contestant1] = -1*probability_breakdown[contestant1][contestant2]
@@ -97,7 +97,9 @@ def simulate(trials, c1 = None, use_prob_c1 = True, c2 = None, use_prob_c2 = Tru
     Carol_wins = 0
     Draws = 0
     Alice_total_points = 0
+    Alice_wins_by_three = 0
     Carol_total_points = 0
+    Carol_wins_by_three = 0
     while trial <= trials:
         points = 0
         if c1 == None:
@@ -113,7 +115,7 @@ def simulate(trials, c1 = None, use_prob_c1 = True, c2 = None, use_prob_c2 = Tru
             print(Alice)
         if c2 == None:
             Carol = select_random_castles()
-            Carol = bola
+            #Carol = bola
             #Carol = generate_probability(select_random_castles())
         else:
             Carol = c2
@@ -122,7 +124,11 @@ def simulate(trials, c1 = None, use_prob_c1 = True, c2 = None, use_prob_c2 = Tru
         if print_castles == True:
             print("CAROL CASTLES: ")
             print(Carol)
-        result, alice_points, carol_points, winning_castles = determine_winner(Alice, Carol)
+        result, alice_points, carol_points, winning_castles, win_by_three = determine_winner(Alice, Carol)
+        if win_by_three == "A":
+            Alice_wins_by_three += 1
+        if win_by_three == "C":
+            Carol_wins_by_three += 1
         Alice_total_points += alice_points
         Carol_total_points += carol_points
         if result == "Draw":
@@ -147,7 +153,13 @@ def simulate(trials, c1 = None, use_prob_c1 = True, c2 = None, use_prob_c2 = Tru
         print("====================================================")
         print("Alice Wins: " + str(Alice_wins/trials) + "Carol Wins: " + str(Carol_wins/trials) + "Draws: " + str(Draws/trials))
         print("====================================================")
-    return (Alice_wins/trials) - (Carol_wins/trials), Alice_total_points/trials, Carol_total_points/trials
+    A_wins_by_three = 0
+    if Alice_wins != 0:
+        A_wins_by_three = Alice_wins_by_three/Alice_wins
+    C_wins_by_three = 0
+    if Carol_wins != 0:
+        C_wins_by_three = Carol_wins_by_three/Carol_wins
+    return (Alice_wins/trials) - (Carol_wins/trials), Alice_total_points/trials, Carol_total_points/trials, A_wins_by_three, C_wins_by_three
 
 def select_random_castles():
     castles = [0]*10
@@ -182,12 +194,19 @@ def generate_probability(castles):
 def determine_winner(Alice, Carol):
     col = 0
     Alice_points = 0
+    Alice_potential_points = 0
     Carol_points = 0
+    Carol_potential_points = 0
     winning_castles = ['U']*10
+    won_by_three_in_a_row = "" # WIN OR DRAW
     while (col < 10):
         if col >= 3 and winning_castles[col-1] != 'X' and winning_castles[col-1] == winning_castles[col-2] and winning_castles[col-1] == winning_castles[col-3]:
             while (col < 10):
                 winning_castles[col] = winning_castles[col-1]
+                if Alice[col] > Carol[col]:
+                    Alice_potential_points += col+1
+                elif Alice[col] < Carol[col]:
+                    Carol_potential_points += col+1
                 if winning_castles[col] == 'C':
                     Carol_points += col+1
                 else:
@@ -197,22 +216,34 @@ def determine_winner(Alice, Carol):
         elif Alice[col] > Carol[col]:
             winning_castles[col] = 'A'
             Alice_points += col+1
+            Alice_potential_points += col+1
         elif Alice[col] < Carol[col]:
             winning_castles[col] = 'C'
             Carol_points += col+1
+            Carol_potential_points += col+1
         else:
             winning_castles[col] = 'X'
         col += 1
     if Alice_points > Carol_points:
-        return "Alice", Alice_points, Carol_points, winning_castles
+        if Alice_potential_points <= Carol_potential_points:
+            won_by_three_in_a_row = "A"
+        return "Alice", Alice_points, Carol_points, winning_castles, won_by_three_in_a_row
     elif Alice_points < Carol_points:
-        return "Carol", Alice_points, Carol_points, winning_castles
+        if Alice_potential_points >= Carol_potential_points:
+            won_by_three_in_a_row = "C"
+        return "Carol", Alice_points, Carol_points, winning_castles, won_by_three_in_a_row
     else:
-        return "Draw", Alice_points, Carol_points, winning_castles
+        if Alice_potential_points > Carol_potential_points:
+            won_by_three_in_a_row = "C"
+            print("HERE")
+        elif Alice_potential_points < Carol_potential_points:
+            won_by_three_in_a_row = "A"
+        return "Draw", Alice_points, Carol_points, winning_castles, won_by_three_in_a_row
 
-a,b = np.array(simulate_tournament(10000,contestants=tourney))
-#np.savetxt('my_file.csv',a,delimiter=',')
-pd.DataFrame(a).to_csv("probabilty_breakdown.csv")
-pd.DataFrame(b).to_csv("tournament_results.csv")
-#df = pd.DataFrame(a).T
-#df.to_excel(excel_writer = 'my_file.xlsx')
+if __name__ == "__main__":
+    a,b = np.array(simulate_tournament(10000,contestants=tourney))
+    #np.savetxt('my_file.csv',a,delimiter=',')
+    pd.DataFrame(a).to_csv("probabilty_breakdown.csv")
+    pd.DataFrame(b).to_csv("tournament_results.csv")
+    #df = pd.DataFrame(a).T
+    #df.to_excel(excel_writer = 'my_file.xlsx')
