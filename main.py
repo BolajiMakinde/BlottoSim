@@ -48,9 +48,21 @@ test5 = [25,25,50,0,0,0,0,0,0,0]
 test5_modified = [24,25,51,0,0,0,0,0,0,0]
 test6 = [22,22,56,0,0,0,0,0,0,0]
 test7 = [22,22,53,1,1,1,0,0,0,0]
-test7_modified = [22,22,52,1,1,1,1,0,0,0,0]
+test7_modified = [22,22,52,1,1,1,1,0,0,0]
+test8 = [0,0,52,22,22,1,1,1,1,0]
+test9 = [1,1,54,5,5,5,5,5,5,14]
+test10 = [23,10,10,10,3,10,10,4,10,10]
+test11 = [0,2,4,6,8,12,14,16,18,20]
+test12 = [20,18,16,14,12,8,6,4,2,0]
+test13 = [0,16,44,23,3,0,3,2,5,4]
+first_four = [25,25,25,25,0,0,0,0,0,0]
+second_four = [0,25,25,25,25,0,0,0,0,0]
+third_four = [0,0,25,25,25,25,0,0,0,0]
+fourth_four = [0,0,0,25,25,25,25,0,0,0]
+standard_normal_distribution = [0,0,2,14,34,34,14,2,0,0]
+rotated_standard_distribution = [2,14,34,34,14,2,0,0,0,0]
 
-tourney = [example_alice, test, test2,bola,kole,uju,babs,even_distribution,first_three,second_three, second_three_v2,kole2,kole2_modified,test3,example_carol,test4,test4_modified,test4_modified_v2,bola_v2,test5,test5_modified, test6, test7, test7_modified]
+tourney = [example_alice, test, test2,bola,kole,uju,babs,even_distribution,first_three,second_three, second_three_v2,kole2,kole2_modified,test3,example_carol,test4,test4_modified,test4_modified_v2,bola_v2,test5,test5_modified, test6, test7, test7_modified, test8, test9, test10, test11, test12, test13, first_four, second_four, third_four, fourth_four, standard_normal_distribution, rotated_standard_distribution]
 
 def simulate_tournament(trials, use_prob_distribution = True, contestants = None):
     number_of_contestants = len(contestants)
@@ -172,6 +184,9 @@ def select_random_castles():
 def generate_probability(castles):
     castle_sum = sum(castles)
     temp_arr = [0]*castle_sum
+    if castle_sum > 100 or castle_sum <= 0:
+        print("castle_sum out of range:")
+        print(castles)
     iteration = 1
     ret = [0]*10
     while iteration <= 100:
